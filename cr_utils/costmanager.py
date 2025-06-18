@@ -2,7 +2,7 @@ from dataclasses import dataclass
 import logging
 from prettytable import PrettyTable
 
-from crutils import Singleton
+from cr_utils import Singleton
 
 
 logger = logging.getLogger(__name__)
