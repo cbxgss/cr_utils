@@ -1,0 +1,12 @@
+model_list:
+  - model_name: Qwen/Qwen2.5-7B-Instruct
+    litellm_params:
+      model: 
+      api_base: 
+      api_key: sk-
+
+  - model_name: Qwen/Qwen2.5-7B-Instruct
+    litellm_params:
+      model: 
+      api_base: 
+      api_key: sk-
