@@ -44,7 +44,3 @@ class DataProto:
     def push(self, item: dict):
         for key in item:
             self.item[key] = item[key]
-
-    @classmethod
-    def from_dict(cls, item: dict) -> 'DataProto':
-        return DataProto(item)
