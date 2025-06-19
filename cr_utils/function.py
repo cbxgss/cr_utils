@@ -1,4 +1,5 @@
-import os, signal, psutil
+import os, sys, signal, psutil
+import ipdb
 import traceback
 from bdb import BdbQuit
 from typing import Callable, Awaitable, TypeVar, ParamSpec
@@ -40,72 +41,60 @@ def set_variable_with_default(var_name, guidance, *default_values):
     print()
 
 
-def make_cleanup(func: Callable[P, T]) -> Callable[P, T]:
-    def killall_processes() -> None:
-        current_pid = os.getpid()
+def killall_processes() -> None:
+    current_pid = os.getpid()
+    try:
+        parent = psutil.Process(current_pid)
+    except psutil.NoSuchProcess:
+        print("[Cleanup] Current process not found.")
+        return
+    # 获取所有子进程组
+    procs = parent.children(recursive=True)
+    pgids = set()
+    for p in procs:
         try:
-            parent = psutil.Process(current_pid)
-        except psutil.NoSuchProcess:
-            print("[Cleanup] Current process not found.")
-            return
-
-        procs = parent.children(recursive=True)
-        pgids = {os.getpgid(p.pid) for p in procs if p.is_running()}
-        print(f"[Cleanup] Found process groups to kill: {pgids}")
-        for pgid in pgids:
-            try:
-                print(f"[Cleanup] Killing process group {pgid}")
-                os.killpg(pgid, signal.SIGKILL)
-            except Exception as e:
-                print(f"[Cleanup] Failed to kill pgid {pgid}: {e}")
-
-    @wraps(func)
-    def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-        try:
-            return func(*args, **kwargs)
+            pgids.add(os.getpgid(p.pid))
         except Exception:
-            print("[Cleanup] Exception occurred during function execution:")
-            print(traceback.format_exc())
-            killall_processes()
-            import sys
-            sys.exit(0)
+            ...
+    print(f"[Cleanup] Found {len(procs)} subprocesses to kill.")
+    # 杀死所有子进程组
+    for pgid in pgids:
+        try:
+            print(f"[Cleanup] Killing process group {pgid}")
+            os.killpg(pgid, signal.SIGKILL)
+        except Exception as e:
+            print(f"[Cleanup] Failed to kill pgid {pgid}: {e}")
+    sys.exit(0)
 
-    return wrapper
 
-
-def make_debugger(func: Callable[P, T], enable_ipdb: bool = True) -> Callable[P, T]:
+def make_interrupt_handler(debug: bool = True):
     def handle_interrupt(signum, frame):
         print("\n[Signal] Ctrl+C received.")
-        flag = input("Do you want to enter the debugger? (y/n): ").strip().lower()
-        if flag == 'y':
-            if enable_ipdb:
-                import ipdb as pdb
-            else:
-                import pdb
+        if debug:
             print("Entering debugger...")
-            pdb.set_trace(frame)
+            ipdb.set_trace(frame)
         else:
-            raise KeyboardInterrupt
+            print("Debug disabled. Cleaning up subprocesses...")
+            killall_processes()
+            sys.exit(0)
+    return handle_interrupt
 
+
+def make_main(func: Callable[P, T], debug: bool = True) -> Callable[P, T]:
     @wraps(func)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-        signal.signal(signal.SIGINT, handle_interrupt)
+        signal.signal(signal.SIGINT, make_interrupt_handler(debug))
         try:
             return func(*args, **kwargs)
         except BdbQuit:
-            print("[Debugger] Exited debugger. Cleaning up subprocesses...")
-            raise # 继续向上传递，让 cleanup 装饰器处理退出逻辑
+            print("[Make main] Exited debugger. Cleaning up subprocesses...")
+            killall_processes()
         except Exception:
-            print("[Debugger] Exception occurred:")
+            print("[Make main] Exception occurred:")
             print(traceback.format_exc())
-            if enable_ipdb:
-                import ipdb as pdb
-            else:
-                import pdb
-            pdb.post_mortem()
-            print("[Debugger] Exiting debugger.")
-            raise  # 继续向上传递，让 cleanup 装饰器处理退出逻辑
-
+            ipdb.post_mortem()
+            print("[Make main] Exiting debugger.")
+            killall_processes()
     return wrapper
 
 
@@ -208,7 +197,6 @@ def append_to_dict(data: dict, new_data: dict):
         if key not in data:
             data[key] = []
         data[key].append(val)
-
 
 
 def encode_image(image_path: str):

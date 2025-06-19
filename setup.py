@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='cr_utils',
-    version='0.1.2',
+    version='0.1.3',
     packages=find_packages(),
     install_requires=[
         "litellm==1.67.0.post1",
