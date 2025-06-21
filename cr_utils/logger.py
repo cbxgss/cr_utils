@@ -1,9 +1,30 @@
 import os
 import pandas as pd
 import json
+from typing import Callable
+import logging
+from tenacity import RetryCallState
 from omegaconf import DictConfig
 
 from .singleton import Singleton
+
+
+def custom_before_log(logger: logging.Logger, log_level: int) -> Callable[[RetryCallState], None]:
+    def log_it(retry_state: RetryCallState):
+        if retry_state.attempt_number > 1:
+            logger.log(log_level, f"Retrying {retry_state.fn} (attempt {retry_state.attempt_number})...")
+    return log_it
+
+
+def custom_after_log(logger: logging.Logger, log_level: int) -> Callable[[RetryCallState], None]:
+    def log_it(retry_state: RetryCallState):
+        if retry_state.outcome and retry_state.outcome.failed:
+            exception = retry_state.outcome.exception()
+            logger.log(
+                log_level,
+                f"Failed attempt {retry_state.attempt_number} of {retry_state.fn}: {exception}"
+            )
+    return log_it
 
 
 class Logger(metaclass=Singleton):

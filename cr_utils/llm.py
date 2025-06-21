@@ -89,3 +89,9 @@ def extract_json_blocks(response):
     blocks = re.findall(pattern_backticks, response, re.DOTALL)
     blocks.extend(re.findall(pattern_dashes, response, re.DOTALL | re.MULTILINE))
     return blocks
+
+
+def extract_sp(response, sp="answer"):
+    pattern_backticks = r"<" + sp + r">\s*(.*?)\s*</" + sp + r">"
+    blocks = re.findall(pattern_backticks, response, re.DOTALL)
+    return blocks

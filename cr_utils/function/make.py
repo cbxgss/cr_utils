@@ -1,13 +1,9 @@
-import os, sys, signal, psutil
+import os, signal, psutil
 import ipdb
 import traceback
 from bdb import BdbQuit
 from typing import Callable, Awaitable, TypeVar, ParamSpec
 from functools import partial, wraps
-import json
-import logging
-import base64
-from tenacity import RetryCallState
 import threading
 from concurrent.futures import ThreadPoolExecutor
 import asyncio
@@ -64,7 +60,8 @@ def killall_processes() -> None:
             os.killpg(pgid, signal.SIGKILL)
         except Exception as e:
             print(f"[Cleanup] Failed to kill pgid {pgid}: {e}")
-    sys.exit(0)
+    print("[Cleanup] All subprocesses killed.")
+    os._exit(0)
 
 
 def make_interrupt_handler(debug: bool = True):
@@ -76,7 +73,6 @@ def make_interrupt_handler(debug: bool = True):
         else:
             print("Debug disabled. Cleaning up subprocesses...")
             killall_processes()
-            sys.exit(0)
     return handle_interrupt
 
 
@@ -141,65 +137,3 @@ def make_sync(async_func: Callable[P, Awaitable[T]]) -> Callable[P, T]:
         return result
 
     return wrapper
-
-
-def custom_before_log(logger: logging.Logger, log_level: int) -> Callable[[RetryCallState], None]:
-    def log_it(retry_state: RetryCallState):
-        if retry_state.attempt_number > 1:
-            logger.log(log_level, f"Retrying {retry_state.fn} (attempt {retry_state.attempt_number})...")
-    return log_it
-
-
-def custom_after_log(logger: logging.Logger, log_level: int) -> Callable[[RetryCallState], None]:
-    def log_it(retry_state: RetryCallState):
-        if retry_state.outcome and retry_state.outcome.failed:
-            exception = retry_state.outcome.exception()
-            logger.log(
-                log_level,
-                f"Failed attempt {retry_state.attempt_number} of {retry_state.fn}: {exception}"
-            )
-    return log_it
-
-
-def read_jsonl(file_path):
-    with open(file_path, 'r', encoding='utf-8') as f:
-        return [json.loads(line) for line in f]
-
-
-def write_jsonl(data: dict, file_path: str):
-    os.makedirs(os.path.dirname(file_path), exist_ok=True)
-    with open(file_path, 'w', encoding='utf-8') as f:
-        for item in data:
-            f.write(json.dumps(item, ensure_ascii=False) + '\n')
-
-
-def union_two_dict(dict1: dict, dict2: dict):
-    """Union two dict. Will throw an error if there is an item not the same object with the same key.
-
-    Args:
-        dict1:
-        dict2:
-
-    Returns:
-
-    """
-    for key, val in dict2.items():
-        if key in dict1:
-            assert dict2[key] == dict1[key], \
-                f'{key} in meta_dict1 and meta_dict2 are not the same object'
-        dict1[key] = val
-
-    return dict1
-
-
-def append_to_dict(data: dict, new_data: dict):
-    for key, val in new_data.items():
-        if key not in data:
-            data[key] = []
-        data[key].append(val)
-
-
-def encode_image(image_path: str):
-    os.makedirs(os.path.dirname(image_path), exist_ok=True)
-    with open(image_path, "rb") as image_file:
-        return base64.b64encode(image_file.read()).decode('utf-8')

@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cr_utils"
-version = "0.1.3"
-description = "Add your description here"
+version = "0.1.4"
+description = "一个实用工具库，包含日志管理、单例模式、注册表、成本管理、多功能函数和数据协议等模块，帮助你快速构建和管理 Python 项目。"
 readme = "README.md"
 requires-python = ">=3.9"
 license = { file = "LICENSE.md" }
@@ -13,7 +13,7 @@ authors = [
   { name = "Rong Cheng", email = "chengrong@tju.edu.cn" }
 ]
 dependencies = [
-    "litellm==1.67.0.post1",
+    "litellm>=1.67.0.post1",
     "omegaconf>=2.3.0",
     "openai>=1.74.0",
     "pandas>=2.2.3",
@@ -22,7 +22,11 @@ dependencies = [
     "prettytable>=3.16.0",
     "ipdb>=0.13.13",
     "setuptools>=80.9.0",
+    "pudb>=2025.1",
 ]
 
 [project.urls]
 Homepage='https://github.com/cbxgss/cr_utils'
+
+[tool.setuptools.packages.find]
+include = ["cr_utils*"]

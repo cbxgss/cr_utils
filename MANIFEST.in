@@ -1,0 +1,11 @@
+include README.md
+include LICENSE.md
+
+recursive-include cr_utils *.py
+recursive-include config *
+
+exclude **/*.pyc
+exclude **/__pycache__/*
+exclude script/*
+exclude dist/*
+exclude uv.lock
