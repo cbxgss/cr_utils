@@ -1,7 +1,7 @@
 import unicodedata, string, re
 
 
-def normalize_text(s):
+def normalize_text(s: str):
     s = unicodedata.normalize('NFD', s)
 
     def lower(text: str):               # 转换为小写            影响很大

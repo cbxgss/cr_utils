@@ -6,9 +6,8 @@ import litellm
 from litellm import Message, ModelResponse, Router
 from tenacity import retry, wait_random_exponential, stop_never
 
-from .logger import Logger
+from .logger import Logger, custom_after_log
 from .costmanager import CostManagers
-from .function import custom_after_log
 from .singleton import Singleton
 
 
