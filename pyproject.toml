@@ -23,6 +23,7 @@ dependencies = [
     "ipdb>=0.13.13",
     "setuptools>=80.9.0",
     "pudb>=2025.1",
+    "zstandard>=0.23.0",
 ]
 
 [project.urls]

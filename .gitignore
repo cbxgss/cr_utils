@@ -1,3 +1,7 @@
+.DS_Store
+
+.vscode
+
 outputs
 
 # Python-generated files

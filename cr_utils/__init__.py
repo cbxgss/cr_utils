@@ -9,7 +9,8 @@ from .function import (
     set_variable_with_default,
     killall_processes, make_main,
     make_async, make_sync,
-    read_jsonl, write_jsonl, normalize_text, encode_image,
+    read_jsonl, write_jsonl, compress_files, decompress_files,
+    normalize_text, encode_image,
 )
 from .protocol import DataProto
 from .llm import (
