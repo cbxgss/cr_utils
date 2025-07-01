@@ -1,14 +1,13 @@
-from cr_utils import compress_files, decompress_files
+import sys
+sys.path.append(".")
+from cr_utils import Logger
+import pandas as pd
 
+df = pd.DataFrame({
+    "name": ["你好", "Bob", "Charlie"],
+    "age": [25, 30, 35],
+    "city": ["New 好", "Los Angeles", "Chicago"]
+})
 
-def main():
-    def is_not_png(file_path: str):
-        return not file_path.endswith('.png')
-    compress_files("tmp", "tmp.txt", is_not_png)
-
-    # 解压缩文件示例
-    decompress_files("tmp.txt", "decompressed")
-
-
-if __name__ == "__main__":
-    main()
+logger = Logger()
+logger.save_csv("test.csv", df)

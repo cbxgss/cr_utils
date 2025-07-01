@@ -49,18 +49,18 @@ class Logger(metaclass=Singleton):
     def save_csv(self, file_path: str, csv: pd.DataFrame):
         csv_path = os.path.join(self.cfg.log_config.base_log_dir, file_path)
         os.makedirs(os.path.dirname(csv_path), exist_ok=True)
-        csv.to_csv(csv_path, index=False)
+        csv.to_csv(csv_path, index=False, encoding="utf-8")
 
     def save_json(self, file_path: str, json_data: dict):
         json_path = os.path.join(self.cfg.log_config.base_log_dir, file_path)
         os.makedirs(os.path.dirname(json_path), exist_ok=True)
-        with open(json_path, "w") as f:
+        with open(json_path, "w", encoding="utf-8") as f:
             json.dump(json_data, f, indent=4, ensure_ascii=False)
 
     def save_text(self, file_path: str, content: str):
         md_path = os.path.join(self.cfg.log_config.base_log_dir, file_path)
         os.makedirs(os.path.dirname(md_path), exist_ok=True)
-        with open(md_path, "w") as f:
+        with open(md_path, "w", encoding="utf-8") as f:
             f.write(content)
 
     def save_message(self, file_path: str, message: list[dict[str, str]]):
@@ -74,5 +74,5 @@ class Logger(metaclass=Singleton):
     def save_html(self, file_path: str, html: str):
         html_path = os.path.join(self.cfg.log_config.base_log_dir, file_path)
         os.makedirs(os.path.dirname(html_path), exist_ok=True)
-        with open(html_path, "w") as f:
+        with open(html_path, "w", encoding="utf-8") as f:
             f.write(html)
