@@ -1,5 +1,3 @@
-flit build
+python -m build
 
 twine upload dist/*
-
-# pypi-AgEIcHlwaS5vcmcCJGZlY2ZmMjhjLWYzNWQtNGY4Mi1hOGU4LTIwNjUwMjMwMjJhMQACEFsxLFsiY3ItdXRpbHMiXV0AAixbMixbIjY5NTJiYjFlLTdmY2YtNDhiMC1hYjQ5LWJjNjE2Mjg0ZDRjMSJdXQAABiBo07pUvdu8h4cpknmm1ITvf18iiwM_nii4tGBdxq5xtg
