@@ -1,4 +1,5 @@
 import os, signal, psutil
+import logging
 import ipdb
 import traceback
 from bdb import BdbQuit
@@ -8,6 +9,8 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 import asyncio
 
+
+logger = logging.getLogger(__name__)
 
 P = ParamSpec('P')
 K = TypeVar("K")
@@ -42,7 +45,7 @@ def killall_processes() -> None:
     try:
         parent = psutil.Process(current_pid)
     except psutil.NoSuchProcess:
-        print("[Cleanup] Current process not found.")
+        logger.info("[Cleanup] Current process not found.")
         return
     # 获取所有子进程组
     procs = parent.children(recursive=True)
@@ -52,26 +55,26 @@ def killall_processes() -> None:
             pgids.add(os.getpgid(p.pid))
         except Exception:
             ...
-    print(f"[Cleanup] Found {len(procs)} subprocesses to kill.")
+    logger.info(f"[Cleanup] Found {len(procs)} subprocesses to kill.")
     # 杀死所有子进程组
     for pgid in pgids:
         try:
-            print(f"[Cleanup] Killing process group {pgid}")
+            logger.info(f"[Cleanup] Killing process group {pgid}")
             os.killpg(pgid, signal.SIGKILL)
         except Exception as e:
-            print(f"[Cleanup] Failed to kill pgid {pgid}: {e}")
-    print("[Cleanup] All subprocesses killed.")
+            logger.info(f"[Cleanup] Failed to kill pgid {pgid}: {e}")
+    logger.info("[Cleanup] All subprocesses killed.")
     os._exit(0)
 
 
 def make_interrupt_handler(debug: bool = True):
     def handle_interrupt(signum, frame):
-        print("\n[Signal] Ctrl+C received.")
+        logger.info("\n[Signal] Ctrl+C received.")
         if debug:
-            print("Entering debugger...")
+            logger.info("Entering debugger...")
             ipdb.set_trace(frame)
         else:
-            print("Debug disabled. Cleaning up subprocesses...")
+            logger.info("Debug disabled. Cleaning up subprocesses...")
             killall_processes()
     return handle_interrupt
 
@@ -83,13 +86,13 @@ def make_main(func: Callable[P, T], debug: bool = True) -> Callable[P, T]:
         try:
             return func(*args, **kwargs)
         except BdbQuit:
-            print("[Make main] Exited debugger. Cleaning up subprocesses...")
+            logger.info("[Make main] Exited debugger. Cleaning up subprocesses...")
             killall_processes()
         except Exception:
-            print("[Make main] Exception occurred:")
-            print(traceback.format_exc())
+            logger.info("[Make main] Exception occurred:")
+            logger.info(traceback.format_exc())
             ipdb.post_mortem()
-            print("[Make main] Exiting debugger.")
+            logger.info("[Make main] Exiting debugger.")
             killall_processes()
     return wrapper
 

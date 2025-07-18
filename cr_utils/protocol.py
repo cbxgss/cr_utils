@@ -20,7 +20,7 @@ def list_of_dict_to_dict_of_list(list_of_dict: list[dict]) -> dict[list]:
     return output
 
 @dataclass
-class DataProto:
+class ParamProto:
     item: dict
 
     def get(self, key: str, typ: Type[T]) -> T:
@@ -31,15 +31,15 @@ class DataProto:
             raise TypeError(f"Key '{key}' expected to be {typ}, got {type(value)}")
         return cast(T, value)
 
-    def select(self, keys: list[str], deepcopy: bool = False) -> 'DataProto':
+    def select(self, keys: list[str], deepcopy: bool = False) -> 'ParamProto':
         if deepcopy:
             item = copy.deepcopy(self.item)
         else:
             item = self.item
-        return DataProto({key: item[key] for key in keys})
+        return ParamProto({key: item[key] for key in keys})
 
-    def pop(self, keys: list[str]) -> 'DataProto':
-        return DataProto({key: self.item.pop(key) for key in keys})
+    def pop(self, keys: list[str]) -> 'ParamProto':
+        return ParamProto({key: self.item.pop(key) for key in keys})
 
     def push(self, item: dict):
         for key in item:

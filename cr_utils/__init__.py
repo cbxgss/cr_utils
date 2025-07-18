@@ -12,7 +12,7 @@ from .function import (
     read_jsonl, write_jsonl, compress_files, decompress_files,
     normalize_text, encode_image,
 )
-from .protocol import DataProto
+from .protocol import ParamProto
 from .llm import (
     Chater,
     extract_any_blocks, extract_code_blocks, extract_json_blocks,
