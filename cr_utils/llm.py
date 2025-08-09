@@ -3,7 +3,7 @@ import logging
 import time
 import yaml
 import litellm
-from litellm import Message, ModelResponse, Router
+from litellm import Message, ModelResponse, Router, Choices
 from tenacity import retry, wait_random_exponential, stop_never
 
 from .logger import Logger, custom_after_log
@@ -35,7 +35,7 @@ class Chater(metaclass=Singleton):
         log = Logger()
         log.save_text(f"{path}/{cnt}-{name}-rsp.md", rsp)
 
-    def _process_response(self, response: ModelResponse, cnt: int, name: str, path: str, start_time: float) -> str:
+    def _process_response(self, response: ModelResponse, cnt: int, name: str, path: str, start_time: float, return_all=False) -> str | Choices:
         rsp_msg: Message = response.choices[0].message
         rsp_time = time.time() - start_time
         rsp = rsp_msg.content
@@ -46,24 +46,24 @@ class Chater(metaclass=Singleton):
             response.usage.prompt_tokens, response.usage.completion_tokens,
             response._hidden_params["response_cost"], rsp_time, name
         )
-        return rsp_msg.content
+        return response.choices[0] if return_all else rsp
 
     @retry(stop=stop_never, wait=wait_random_exponential(multiplier=1, max=10), after=custom_after_log(logger, logging.INFO))
-    def call_llm(self, prompt: str | dict, model='openai/gpt-4o', reasoning_effort=None, name="all", path="llm", **kwargs) -> str:
+    def call_llm(self, prompt: str | dict, model='openai/gpt-4o', reasoning_effort=None, name="all", path="llm", return_all=False, **kwargs) -> str | Choices:
         messages = [{"content": prompt, "role": "user"}] if isinstance(prompt, str) else prompt
         cnt = self.save_prompt(messages, name, path)
         start_time = time.time()
         response: ModelResponse = self.router.completion(model=model, messages=messages, reasoning_effort=reasoning_effort, **kwargs)
-        return self._process_response(response, cnt, name, path, start_time)
+        return self._process_response(response, cnt, name, path, start_time, return_all)
 
 
     @retry(stop=stop_never, wait=wait_random_exponential(multiplier=1, max=10), after=custom_after_log(logger, logging.INFO))
-    async def acall_llm(self, prompt: str | dict, model='openai/gpt-4o', reasoning_effort=None, name="all", path="llm", **kwargs) -> str:
+    async def acall_llm(self, prompt: str | dict, model='openai/gpt-4o', reasoning_effort=None, name="all", path="llm", return_all=False, **kwargs) -> str | Choices:
         messages = [{"content": prompt, "role": "user"}] if isinstance(prompt, str) else prompt
         cnt = self.save_prompt(messages, name, path)
         start_time = time.time()
         response: ModelResponse = await self.router.acompletion(model=model, messages=messages, reasoning_effort=reasoning_effort, **kwargs)
-        return self._process_response(response, cnt, name, path, start_time)
+        return self._process_response(response, cnt, name, path, start_time, return_all)
 
 
 def extract_any_blocks(response, block_type="python"):
