@@ -13,8 +13,9 @@ from .singleton import Singleton
 
 logger = logging.getLogger(__name__)
 
-# logging.getLogger("LiteLLM").setLevel(logging.WARNING)
 # logging.getLogger("httpx").setLevel(logging.WARNING)
+# logging.getLogger("LiteLLM").setLevel(logging.WARNING)
+# logging.getLogger("LiteLLM Router").setLevel(logging.WARNING)
 litellm.drop_params = True
 
 
