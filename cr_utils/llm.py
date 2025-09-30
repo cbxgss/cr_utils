@@ -66,6 +66,26 @@ class Chater(metaclass=Singleton):
         response: ModelResponse = await self.router.acompletion(model=model, messages=messages, reasoning_effort=reasoning_effort, **kwargs)
         return self._process_response(response, cnt, name, path, start_time, return_all)
 
+    @retry(stop=stop_never, wait=wait_random_exponential(multiplier=1, max=10), after=custom_after_log(logger, logging.INFO))
+    def call_embedding(self, text: str | list[str], model='openai/text-embedding-3-small', **kwargs) -> list[list[float]]:
+        if isinstance(text, str):
+            texts = [text]
+        else:
+            texts = text
+        response = self.router.embedding(model=model, input=texts, **kwargs)
+        CostManagers().update_cost(0, 0, response._hidden_params["response_cost"], 0, "embedding")
+        return [data["embedding"] for data in response.data]
+
+    @retry(stop=stop_never, wait=wait_random_exponential(multiplier=1, max=10), after=custom_after_log(logger, logging.INFO))
+    async def acall_embedding(self, text: str | list[str], model='openai/text-embedding-3-small', **kwargs) -> list[list[float]]:
+        if isinstance(text, str):
+            texts = [text]
+        else:
+            texts = text
+        response = await self.router.aembedding(model=model, input=texts, **kwargs)
+        CostManagers().update_cost(0, 0, response._hidden_params["response_cost"], 0, "embedding")
+        return [data["embedding"] for data in response.data]
+
 
 def extract_any_blocks(response, block_type="python"):
     pattern_backticks = r"```" + block_type + r"\s*(.*?)\s*```"
