@@ -58,6 +58,13 @@ class Logger(metaclass=Singleton):
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(json_data, f, indent=4, ensure_ascii=False)
 
+    def save_jsonl(self, file_path: str, json_list: list[dict], workspace: bool = False):
+        jsonl_path = self.dir(file_path, workspace)
+        os.makedirs(os.path.dirname(jsonl_path), exist_ok=True)
+        with open(jsonl_path, "w", encoding="utf-8") as f:
+            for item in json_list:
+                f.write(json.dumps(item, ensure_ascii=False) + "\n")
+
     def save_text(self, file_path: str, content: str, workspace: bool = False):
         md_path = self.dir(file_path, workspace)
         os.makedirs(os.path.dirname(md_path), exist_ok=True)
