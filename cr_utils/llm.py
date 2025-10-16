@@ -2,10 +2,11 @@ import os
 import re
 import logging
 import time
+import datetime
 import yaml
 import litellm
 from litellm import Message, ModelResponse, Router, Choices
-from tenacity import retry, wait_random_exponential, stop_never
+from tenacity import retry, wait_random_exponential, stop_after_attempt
 
 from .logger import Logger, custom_after_log
 from .costmanager import CostManagers
@@ -40,11 +41,13 @@ class Chater(metaclass=Singleton):
     def init(self):
         mtime = os.path.getmtime(self._config_path)
         if mtime != self._config_time:
-            logger.info(f"Loading LiteLLM config from {self._config_path} ({self._config_time} -> {mtime})")
+            mtime_readable = datetime.datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M:%S")
+            config_time_readable = datetime.datetime.fromtimestamp(self._config_time).strftime("%Y-%m-%d %H:%M:%S") if self._config_time else "Never"
+            logger.info(f"Loading LiteLLM config from {self._config_path} ({config_time_readable} -> {mtime_readable})")
             with open(self._config_path, "r") as f:
                 config = yaml.safe_load(f)
             self.router.set_model_list(config["model_list"])
-            self._config_path = mtime
+            self._config_time = mtime
 
     def save_prompt(self, messages: list[dict], name: str = "all", path: str = "llm"):
         log = Logger()
@@ -69,7 +72,7 @@ class Chater(metaclass=Singleton):
         )
         return response.choices[0] if return_all else rsp
 
-    @retry(reraise=True, stop=stop_never, wait=wait_random_exponential(multiplier=1, max=10), after=custom_after_log(logger, logging.INFO))
+    @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_random_exponential(multiplier=1, max=10), after=custom_after_log(logger, logging.INFO))
     def call_llm(self, prompt: str | dict, model='openai/gpt-4o', reasoning_effort=None, name="all", path="llm", return_all=False, **kwargs) -> str | Choices:
         self.init()
         messages = [{"content": prompt, "role": "user"}] if isinstance(prompt, str) else prompt
@@ -79,7 +82,7 @@ class Chater(metaclass=Singleton):
         return self._process_response(response, cnt, name, path, start_time, return_all)
 
 
-    @retry(reraise=True, stop=stop_never, wait=wait_random_exponential(multiplier=1, max=10), after=custom_after_log(logger, logging.INFO))
+    @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_random_exponential(multiplier=1, max=10), after=custom_after_log(logger, logging.INFO))
     async def acall_llm(self, prompt: str | dict, model='openai/gpt-4o', reasoning_effort=None, name="all", path="llm", return_all=False, **kwargs) -> str | Choices:
         self.init()
         messages = [{"content": prompt, "role": "user"}] if isinstance(prompt, str) else prompt
@@ -88,7 +91,7 @@ class Chater(metaclass=Singleton):
         response: ModelResponse = await self.router.acompletion(model=model, messages=messages, reasoning_effort=reasoning_effort, **kwargs)
         return self._process_response(response, cnt, name, path, start_time, return_all)
 
-    @retry(reraise=True, stop=stop_never, wait=wait_random_exponential(multiplier=1, max=10), after=custom_after_log(logger, logging.INFO))
+    @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_random_exponential(multiplier=1, max=10), after=custom_after_log(logger, logging.INFO))
     def call_embedding(self, text: str | list[str], model='openai/text-embedding-3-small', **kwargs) -> list[list[float]]:
         self.init()
         if isinstance(text, str):
@@ -99,7 +102,7 @@ class Chater(metaclass=Singleton):
         CostManagers().update_cost(0, 0, response._hidden_params["response_cost"], 0, "embedding")
         return [data["embedding"] for data in response.data]
 
-    @retry(reraise=True, stop=stop_never, wait=wait_random_exponential(multiplier=1, max=10), after=custom_after_log(logger, logging.INFO))
+    @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_random_exponential(multiplier=1, max=10), after=custom_after_log(logger, logging.INFO))
     async def acall_embedding(self, text: str | list[str], model='openai/text-embedding-3-small', **kwargs) -> list[list[float]]:
         self.init()
         if isinstance(text, str):
