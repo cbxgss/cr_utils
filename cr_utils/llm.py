@@ -1,3 +1,4 @@
+import os
 import re
 import logging
 import time
@@ -19,18 +20,37 @@ logger = logging.getLogger(__name__)
 litellm.drop_params = True
 
 
-class Chater(metaclass=Singleton):
+class CallCnt(metaclass=Singleton):
     def __init__(self):
-        self.cnt = 0
-        with open("config/litellm.yaml", "r") as f:
-            config = yaml.safe_load(f)
-        self.router = Router(model_list=config["model_list"])
+        self.cnt = -1
+
+    def __call__(self):
+        self.cnt += 1
+        return self.cnt
+
+
+class Chater(metaclass=Singleton):
+    def __init__(self, config_path: str = "config/litellm.yaml"):
+        self.cnt = CallCnt()
+        self.router = Router()
+        self._config_path = config_path
+        self._config_time: float = None
+        self.init()
+
+    def init(self):
+        mtime = os.path.getmtime(self._config_path)
+        if mtime != self._config_time:
+            logger.info(f"Loading LiteLLM config from {self._config_path} ({self._config_time} -> {mtime})")
+            with open(self._config_path, "r") as f:
+                config = yaml.safe_load(f)
+            self.router.set_model_list(config["model_list"])
+            self._config_path = mtime
 
     def save_prompt(self, messages: list[dict], name: str = "all", path: str = "llm"):
         log = Logger()
-        log.save_message(f"{path}/{self.cnt}-{name}.md", messages)
-        self.cnt += 1
-        return self.cnt - 1
+        cnt = self.cnt()
+        log.save_message(f"{path}/{cnt}-{name}.md", messages)
+        return cnt
 
     def save_rsp(self, rsp: str, cnt: int, name: str = "all", path: str = "llm"):
         log = Logger()
@@ -49,8 +69,9 @@ class Chater(metaclass=Singleton):
         )
         return response.choices[0] if return_all else rsp
 
-    @retry(stop=stop_never, wait=wait_random_exponential(multiplier=1, max=10), after=custom_after_log(logger, logging.INFO))
+    @retry(reraise=True, stop=stop_never, wait=wait_random_exponential(multiplier=1, max=10), after=custom_after_log(logger, logging.INFO))
     def call_llm(self, prompt: str | dict, model='openai/gpt-4o', reasoning_effort=None, name="all", path="llm", return_all=False, **kwargs) -> str | Choices:
+        self.init()
         messages = [{"content": prompt, "role": "user"}] if isinstance(prompt, str) else prompt
         cnt = self.save_prompt(messages, name, path)
         start_time = time.time()
@@ -58,16 +79,18 @@ class Chater(metaclass=Singleton):
         return self._process_response(response, cnt, name, path, start_time, return_all)
 
 
-    @retry(stop=stop_never, wait=wait_random_exponential(multiplier=1, max=10), after=custom_after_log(logger, logging.INFO))
+    @retry(reraise=True, stop=stop_never, wait=wait_random_exponential(multiplier=1, max=10), after=custom_after_log(logger, logging.INFO))
     async def acall_llm(self, prompt: str | dict, model='openai/gpt-4o', reasoning_effort=None, name="all", path="llm", return_all=False, **kwargs) -> str | Choices:
+        self.init()
         messages = [{"content": prompt, "role": "user"}] if isinstance(prompt, str) else prompt
         cnt = self.save_prompt(messages, name, path)
         start_time = time.time()
         response: ModelResponse = await self.router.acompletion(model=model, messages=messages, reasoning_effort=reasoning_effort, **kwargs)
         return self._process_response(response, cnt, name, path, start_time, return_all)
 
-    @retry(stop=stop_never, wait=wait_random_exponential(multiplier=1, max=10), after=custom_after_log(logger, logging.INFO))
+    @retry(reraise=True, stop=stop_never, wait=wait_random_exponential(multiplier=1, max=10), after=custom_after_log(logger, logging.INFO))
     def call_embedding(self, text: str | list[str], model='openai/text-embedding-3-small', **kwargs) -> list[list[float]]:
+        self.init()
         if isinstance(text, str):
             texts = [text]
         else:
@@ -76,8 +99,9 @@ class Chater(metaclass=Singleton):
         CostManagers().update_cost(0, 0, response._hidden_params["response_cost"], 0, "embedding")
         return [data["embedding"] for data in response.data]
 
-    @retry(stop=stop_never, wait=wait_random_exponential(multiplier=1, max=10), after=custom_after_log(logger, logging.INFO))
+    @retry(reraise=True, stop=stop_never, wait=wait_random_exponential(multiplier=1, max=10), after=custom_after_log(logger, logging.INFO))
     async def acall_embedding(self, text: str | list[str], model='openai/text-embedding-3-small', **kwargs) -> list[list[float]]:
+        self.init()
         if isinstance(text, str):
             texts = [text]
         else:

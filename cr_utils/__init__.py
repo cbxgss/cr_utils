@@ -12,6 +12,7 @@ from .function import (
     read_jsonl, write_jsonl, compress_files, decompress_files,
     normalize_text, encode_image,
 )
+from .locks import RWLock
 from .protocol import ParamProto
 from .llm import (
     Chater,

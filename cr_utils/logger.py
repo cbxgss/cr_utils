@@ -29,16 +29,14 @@ def custom_after_log(logger: logging.Logger, log_level: int) -> Callable[[RetryC
 
 class Logger(metaclass=Singleton):
     def __init__(self, cfg: DictConfig = None):
+        if not cfg:
+            cfg = DictConfig({
+                "log_config": {
+                    "base_log_dir": os.path.join(os.getcwd(), "outputs", "logs"),
+                },
+                "workspace": "tmp",
+            })
         self.cfg = cfg
-        if cfg is None:
-            self.cfg = DictConfig(
-                {
-                    "log_config": {
-                        "base_log_dir": os.path.join(os.getcwd(), "outputs", "logs"),
-                    },
-                    "workspace": "tmp",
-                }
-            )
 
     def dir(self, path: str = "", workspace: bool = False) -> str:
         base_dir = self.cfg.log_config.base_log_dir if not workspace else self.cfg.workspace
@@ -51,6 +49,11 @@ class Logger(metaclass=Singleton):
         csv_path = self.dir(file_path, workspace)
         os.makedirs(os.path.dirname(csv_path), exist_ok=True)
         csv.to_csv(csv_path, index=False, encoding="utf-8")
+
+    def save_excel(self, file_path: str, df: pd.DataFrame, workspace: bool = False):
+        excel_path = self.dir(file_path, workspace)
+        os.makedirs(os.path.dirname(excel_path), exist_ok=True)
+        df.to_excel(excel_path, index=False, encoding="utf-8")
 
     def save_json(self, file_path: str, json_data: dict, workspace: bool = False):
         json_path = self.dir(file_path, workspace)
