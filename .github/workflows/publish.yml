@@ -75,7 +75,7 @@ jobs:
     steps:
       # 从 artifact 下载打包的文件
       - name: Download all the dists
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: python-package-distributions
           path: dist/
