@@ -72,7 +72,7 @@ class Chater(metaclass=Singleton):
         )
         return response.choices[0] if return_all else rsp
 
-    @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_random_exponential(multiplier=1, max=10), after=custom_after_log(logger, logging.INFO))
+    @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_random_exponential(multiplier=1, max=10))
     def call_llm(self, prompt: str | dict, model='openai/gpt-4o', reasoning_effort=None, name="all", path="llm", return_all=False, **kwargs) -> str | Choices:
         self.init()
         messages = [{"content": prompt, "role": "user"}] if isinstance(prompt, str) else prompt
@@ -82,7 +82,7 @@ class Chater(metaclass=Singleton):
         return self._process_response(response, cnt, name, path, start_time, return_all)
 
 
-    @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_random_exponential(multiplier=1, max=10), after=custom_after_log(logger, logging.INFO))
+    @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_random_exponential(multiplier=1, max=10))
     async def acall_llm(self, prompt: str | dict, model='openai/gpt-4o', reasoning_effort=None, name="all", path="llm", return_all=False, **kwargs) -> str | Choices:
         self.init()
         messages = [{"content": prompt, "role": "user"}] if isinstance(prompt, str) else prompt

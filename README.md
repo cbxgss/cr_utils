@@ -43,4 +43,5 @@
 
 ```bash
 pip install cr_utils
+pip install git+https://github.com/cbxgss/cr_utils.git
 ```

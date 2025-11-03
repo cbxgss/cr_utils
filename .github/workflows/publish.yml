@@ -1,0 +1,85 @@
+name: Publish Python 🐍 distribution 📦 to PyPI
+
+on:
+  # 手动触发
+  workflow_dispatch:
+
+  # 推送 tag 是 v*.*.*时触发
+  push:
+    tags:
+      - "v*.*.*"
+
+  # 以下是推送到 main 分支时触发
+  # push:
+  #   branches:
+  #     - 'main'
+
+jobs:
+  build:
+    # 打包
+    name: Build distribution 📦
+    runs-on: ubuntu-latest
+
+    steps:
+      # clone 仓库
+      - uses: actions/checkout@v4
+
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      # 设置 Python环境和版本
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      # 安装 build
+      - name: Install pypa/build
+        run: >-
+          python3 -m
+          pip install
+          build
+          --user
+
+      # 打包你的项目
+      - name: Build a binary wheel and a source tarball
+        run: python3 -m build
+
+      # 将打包得到的文件上传到 artifact
+      - name: Store the distribution packages
+        uses: actions/upload-artifact@v3
+        with:
+          name: python-package-distributions
+          path: dist/
+          retention-days: 1 # 1 天后删除 artifact
+
+  publish-to-pypi:
+    # 上传到 PPyPIypi
+    name: >-
+      Publish Python 🐍 distribution 📦 to PyPI
+    if: startsWith(github.ref, 'refs/tags/') # 只在推送tag时，才发布到 PyPI
+    needs:
+      - build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/cr_utils
+    permissions:
+      id-token: write # IMPORTANT: mandatory for trusted publishing
+
+    steps:
+      # 从 artifact 下载打包的文件
+      - name: Download all the dists
+        uses: actions/download-artifact@v3
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      #  通过 pypa/gh-action-pypi-publish 这个 action 发布到 PyPI
+      - name: Publish distribution 📦 to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
