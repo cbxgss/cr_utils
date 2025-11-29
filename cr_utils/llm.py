@@ -63,8 +63,11 @@ class Chater(metaclass=Singleton):
         rsp_msg: Message = response.choices[0].message
         rsp_time = time.time() - start_time
         rsp = rsp_msg.content
-        if getattr(rsp_msg, "reasoning_content", None) is not None:
-            rsp = f"<think>\n{rsp_msg.reasoning_content}\n</think>\n{rsp}"
+        think = None
+        if not think:
+            think = rsp_msg.get("provider_specific_fields", {}).get("reasoning_content", None)
+        if not think:
+            rsp = f"<think>\n{think}\n</think>\n{rsp}"
         self.save_rsp(rsp, cnt, name, path)
         CostManagers().update_cost(
             response.usage.prompt_tokens, response.usage.completion_tokens,
