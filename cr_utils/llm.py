@@ -66,7 +66,7 @@ class Chater(metaclass=Singleton):
         think = None
         if not think:
             think = rsp_msg.get("provider_specific_fields", {}).get("reasoning_content", None)
-        if not think:
+        if think:
             rsp = f"<think>\n{think}\n</think>\n{rsp}"
         self.save_rsp(rsp, cnt, name, path)
         CostManagers().update_cost(

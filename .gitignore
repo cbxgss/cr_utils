@@ -3,6 +3,7 @@
 .vscode
 
 outputs
+litellm.yaml
 
 # Python-generated files
 __pycache__/
