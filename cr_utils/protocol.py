@@ -24,7 +24,7 @@ class ParamProto:
     item: dict
 
     def get(self, key: str, typ: Type[T]) -> T:
-        value = self.item.get(key)
+        value = self.item[key]
         origin = get_origin(typ)
         base_type = origin if origin is not None else typ
         if value is not None and not isinstance(value, base_type):

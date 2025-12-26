@@ -4,6 +4,7 @@ import logging
 import time
 import datetime
 import yaml
+import traceback
 import litellm
 from litellm import Message, ModelResponse, Router, Choices
 from tenacity import retry, wait_random_exponential, stop_after_attempt
@@ -52,12 +53,18 @@ class Chater(metaclass=Singleton):
     def save_prompt(self, messages: list[dict], name: str = "all", path: str = "llm"):
         log = Logger()
         cnt = self.cnt()
-        log.save_message(f"{path}/{cnt}-{name}.md", messages)
+        if name and path:
+            log.save_message(f"{path}/{cnt}-{name}.md", messages)
         return cnt
 
     def save_rsp(self, rsp: str, cnt: int, name: str = "all", path: str = "llm"):
         log = Logger()
         log.save_text(f"{path}/{cnt}-{name}-rsp.md", rsp)
+
+    def save_error(self, err: Exception, cnt: int, name: str = "all", path: str = "llm"):
+        log = Logger()
+        err_text = "".join(traceback.format_exception(type(err), err, err.__traceback__))
+        log.save_text(f"{path}/{cnt}-{name}-error.md", err_text)
 
     def _process_response(self, response: ModelResponse, cnt: int, name: str, path: str, start_time: float, return_all=False) -> str | Choices:
         rsp_msg: Message = response.choices[0].message
@@ -81,7 +88,11 @@ class Chater(metaclass=Singleton):
         messages = [{"content": prompt, "role": "user"}] if isinstance(prompt, str) else prompt
         cnt = self.save_prompt(messages, name, path)
         start_time = time.time()
-        response: ModelResponse = self.router.completion(model=model, messages=messages, reasoning_effort=reasoning_effort, **kwargs)
+        try:
+            response: ModelResponse = self.router.completion(model=model, messages=messages, reasoning_effort=reasoning_effort, **kwargs)
+        except Exception as e:
+            self.save_error(e, cnt, name, path)
+            raise
         return self._process_response(response, cnt, name, path, start_time, return_all)
 
 
@@ -91,7 +102,11 @@ class Chater(metaclass=Singleton):
         messages = [{"content": prompt, "role": "user"}] if isinstance(prompt, str) else prompt
         cnt = self.save_prompt(messages, name, path)
         start_time = time.time()
-        response: ModelResponse = await self.router.acompletion(model=model, messages=messages, reasoning_effort=reasoning_effort, **kwargs)
+        try:
+            response: ModelResponse = await self.router.acompletion(model=model, messages=messages, reasoning_effort=reasoning_effort, **kwargs)
+        except Exception as e:
+            self.save_error(e, cnt, name, path)
+            raise
         return self._process_response(response, cnt, name, path, start_time, return_all)
 
     @retry(reraise=True, stop=stop_after_attempt(3), wait=wait_random_exponential(multiplier=1, max=10), after=custom_after_log(logger, logging.INFO))

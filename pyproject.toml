@@ -7,7 +7,7 @@ include = ["cr_utils*"]
 
 [project]
 name = "cr_utils"
-version = "0.2.9"
+version = "0.3.1"
 description = "一个实用工具库，包含日志管理、单例模式、注册表、成本管理、多功能函数和数据协议等模块，帮助你快速构建和管理 Python 项目。"
 readme = "README.md"
 requires-python = ">=3.9"
